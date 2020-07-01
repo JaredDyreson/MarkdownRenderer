@@ -1,5 +1,5 @@
 import markdown
-import markdown.extensions.fenced_code
+import pathlib
 from pygments.formatters import HtmlFormatter
 
 """
@@ -16,28 +16,32 @@ Written by Jared Dyreson CSUF 2021
 """
 
 class MarkdownIngestor():
-    def __init__(self, path: str):
+    def __init__(self, path: pathlib.Path):
+        if(not isinstance(path, pathlib.Path)):
+            raise ValueError
         self.path = path
-        self.markdown_contents = self.read_contents()
-        self.formatted_contents = self.format_contents()
+        self.read_contents()
+        self.format_contents()
+
     def read_contents(self):
-        try:
-            with open(self.path, "r") as f: return f.read()
-                
-        except Exception as error:
-            print("[-] Could not read the contents of {}\nError: {}".format(
-                self.path, error
-            ))
-            return None
+        with open(self.path, "r") as f:
+            self.markdown_contents = f.read()
             
     def format_contents(self):
+        markdown_extensions = [
+            'markdown.extensions.attr_list',
+            'markdown.extensions.tables',
+            'markdown.extensions.fenced_code',
+            'codehilite'
+        ]
 
-        md_template = markdown.markdown(
-            self.markdown_contents, extensions=["fenced_code", "codehilite"]
+        self.formatted_contents = markdown.markdown(
+            self.markdown_contents, 
+            output_format = 'html5',
+            tab_length = 4,
+            extensions = markdown_extensions
         )
 
-        # Generate css for syntax highlighting
-        formatter = HtmlFormatter(style="friendly", full=True, cssclass="codehilite")
-        md_css = "<style>{}</style>".format(formatter.get_style_defs())
-
-        return "{}{}".format(md_css, md_template)
+    def write_formatted_contents(self):
+        with open(f'{self.path.stem}.html', "w") as f:
+            f.write(self.formatted_contents)
